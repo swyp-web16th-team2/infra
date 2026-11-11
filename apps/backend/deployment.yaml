@@ -14,6 +14,11 @@ spec:
       labels:
         app: backend
     spec:
+      # 이 앱은 쿠버네티스 API를 쓰지 않으므로 서비스 계정 토큰을 마운트하지 않는다.
+      automountServiceAccountToken: false
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: backend
           # 태그는 backend 레포 main의 커밋 SHA. 새 버전을 배포하려면 이 줄을 바꾼다.
