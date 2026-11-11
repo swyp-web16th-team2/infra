@@ -28,6 +28,9 @@ spec:
           env:
             - name: PORT
               value: "3000"
+            # 브라우저에서 API를 부를 수 있는 주소(쉼표로 구분). 프론트엔드 배포 주소가 정해지면 여기에 추가한다.
+            - name: CORS_ORIGINS
+              value: "http://localhost:3000,http://localhost:5173"
           resources:
             requests:
               cpu: 50m
