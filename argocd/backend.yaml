@@ -1,0 +1,22 @@
+# Argo CD가 이 저장소의 apps/backend 폴더를 보고 k3s에 맞춰 준다.
+# 클러스터에는 한 번만 적용한다: kubectl apply -f argocd/backend.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: backend
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/swyp-web16th-team2/infra.git
+    targetRevision: main
+    path: apps/backend
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: backend
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
