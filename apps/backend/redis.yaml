@@ -1,5 +1,5 @@
 # backend가 쓰는 캐시용 Redis. 데이터는 잃어도 되는 캐시라서 디스크에 저장하지 않는다(재시작하면 비워짐).
-# backend 파드만 접근할 수 있다(아래 NetworkPolicy).
+# 같은 네임스페이스의 backend 파드에서 오는 연결만 허용한다(아래 NetworkPolicy).
 apiVersion: apps/v1
 kind: Deployment
 metadata:
