@@ -6,7 +6,7 @@
 
 | 경로 | 내용 |
 |---|---|
-| `apps/backend/` | 백엔드 서버 배포 설정(Deployment, Service, Ingress). 네임스페이스는 `backend` |
+| `apps/backend/` | 백엔드 서버 배포 설정(Deployment, Service, Ingress)과 캐시용 Redis(`redis.yaml`). 네임스페이스는 `backend` |
 | `argocd/backend.yaml` | Argo CD에게 `apps/backend`를 보라고 알리는 설정. 클러스터에 한 번만 적용 |
 
 ## 외부 접속
@@ -23,6 +23,19 @@
 - systemd 타이머 `home-server-cert-renew`가 매일 확인하고, 만료 30일 전에 갱신합니다.
 - 갱신되면 `/usr/local/sbin/sync-backend-tls-secret`이 인증서를 `backend` 네임스페이스의 `backend-tls` 시크릿으로 넣고, Ingress가 그것을 씁니다.
 - 수동 갱신: 홈서버에서 `sudo CERT_RENEW_FORCE=1 /usr/local/sbin/renew-duckdns-cert`.
+
+## DB·Redis 연결
+
+- **Redis**: `apps/backend/redis.yaml`. 캐시용이라 디스크에 저장하지 않고(재시작하면 비워짐) 메모리를 64MB로 제한합니다. 비밀번호가 없어서 NetworkPolicy로 backend 파드에서 오는 연결만 허용합니다. backend는 `REDIS_URL=redis://redis:6379`로 접속합니다.
+- **Supabase Postgres**: backend는 `DATABASE_URL`(트랜잭션 풀러 주소)을 시크릿 `backend-db`에서 읽습니다. 비밀이라 이 레포에 값을 두지 않고 **홈서버에서 직접** 만듭니다. 시크릿이 없어도 backend는 뜨지만 `/health`가 `db: down`(503)을 돌려줍니다.
+  ```bash
+  # 홈서버에서. 주소를 화면에 보이거나 셸 기록에 남기지 않도록 read -s로 입력받습니다.
+  read -rs DATABASE_URL && sudo k3s kubectl -n backend create secret generic backend-db \
+    --from-literal=DATABASE_URL="$DATABASE_URL" --dry-run=client -o yaml | sudo k3s kubectl apply -f - ; unset DATABASE_URL
+  sudo k3s kubectl -n backend rollout restart deploy/backend   # 환경 변수는 파드가 시작할 때만 읽습니다
+  ```
+- 마이그레이션용 `DIRECT_URL`(세션 풀러, IPv4 가능)은 파드가 아니라 마이그레이션을 실행하는 곳에서 씁니다. 첫 모델이 생길 때 실행 방법을 정합니다.
+- 확인: `curl https://swyp16th.duckdns.org/health` → `{"status":"ok","db":"up","redis":"up"}`.
 
 ## 새 버전 배포
 
