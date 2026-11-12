@@ -31,6 +31,17 @@ spec:
             # 브라우저에서 API를 부를 수 있는 주소(쉼표로 구분). 프론트엔드 배포 주소가 정해지면 여기에 추가한다.
             - name: CORS_ORIGINS
               value: "http://localhost:3000,http://localhost:5173"
+            # 같은 네임스페이스의 Redis 서비스(redis.yaml).
+            - name: REDIS_URL
+              value: "redis://redis:6379"
+            # Supabase Postgres 접속 주소(트랜잭션 풀러). 비밀이라 레포에 값을 두지 않고 시크릿 backend-db에서 읽는다.
+            # 시크릿이 없어도 서버는 뜨고 /health가 db: down으로 알려 준다. 시크릿 만드는 법은 README 참고.
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: backend-db
+                  key: DATABASE_URL
+                  optional: true
           resources:
             requests:
               cpu: 50m
