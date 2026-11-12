@@ -6,8 +6,23 @@
 
 | 경로 | 내용 |
 |---|---|
-| `apps/backend/` | 백엔드 서버 배포 설정(Deployment, Service). 네임스페이스는 `backend` |
+| `apps/backend/` | 백엔드 서버 배포 설정(Deployment, Service, Ingress). 네임스페이스는 `backend` |
 | `argocd/backend.yaml` | Argo CD에게 `apps/backend`를 보라고 알리는 설정. 클러스터에 한 번만 적용 |
+
+## 외부 접속
+
+`https://swyp16th.duckdns.org` → 공유기(443) → 홈서버 k3s의 Traefik(k3s 내장 Ingress 컨트롤러) → `apps/backend/ingress.yaml` → backend 서비스.
+
+- **https만 열려 있습니다.** 공유기에서 80 포트는 열지 않았으므로 `http://` 주소는 밖에서 접속되지 않습니다. 의도한 상태입니다.
+- 도메인은 DuckDNS(`swyp16th.duckdns.org`)로, 홈서버의 공인 IP를 가리킵니다.
+- k3s는 Traefik과 servicelb(80·443을 노드에 연결)를 켠 상태로 돌아야 합니다. k3s를 다시 설치할 때 `--disable=traefik`, `--disable=servicelb`를 넣지 마세요.
+
+### 인증서(이 레포에 없음)
+인증서는 비밀 정보라 이 레포에 두지 않고 **홈서버에서** 관리합니다.
+- `acme.sh`가 DuckDNS DNS 확인 방식으로 Let's Encrypt 인증서를 받습니다. 포트를 쓰지 않습니다.
+- systemd 타이머 `home-server-cert-renew`가 매일 확인하고, 만료 30일 전에 갱신합니다.
+- 갱신되면 `/usr/local/sbin/sync-backend-tls-secret`이 인증서를 `backend` 네임스페이스의 `backend-tls` 시크릿으로 넣고, Ingress가 그것을 씁니다.
+- 수동 갱신: 홈서버에서 `sudo CERT_RENEW_FORCE=1 /usr/local/sbin/renew-duckdns-cert`.
 
 ## 새 버전 배포
 

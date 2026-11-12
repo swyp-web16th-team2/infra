@@ -1,0 +1,25 @@
+# 외부 주소 https://swyp16th.duckdns.org 를 backend 서비스로 연결한다.
+# k3s에 내장된 Traefik이 받는다. 인증서는 홈서버에서 갱신해 backend-tls 시크릿으로 넣는다(README 참고).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: backend
+  labels:
+    app: backend
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - swyp16th.duckdns.org
+      secretName: backend-tls
+  rules:
+    - host: swyp16th.duckdns.org
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  name: http
