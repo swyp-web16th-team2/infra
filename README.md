@@ -29,15 +29,19 @@
 - **Redis**: `apps/backend/redis.yaml`. 캐시용이라 디스크에 저장하지 않고(재시작하면 비워짐) 메모리를 64MB로 제한합니다. 비밀번호가 없어서 NetworkPolicy로 같은 네임스페이스의 `app: backend` 파드에서 오는 연결만 허용합니다(노드 자체나 `hostNetwork` 파드는 쿠버네티스 정책의 대상 밖일 수 있어 절대적인 차단은 아닙니다). backend는 `REDIS_URL=redis://redis:6379`로 접속합니다.
 - **Supabase Postgres**: backend는 `DATABASE_URL`(트랜잭션 풀러 주소)을 시크릿 `backend-db`에서 읽습니다. 비밀이라 이 레포에 값을 두지 않고 **홈서버에서 직접** 만듭니다. 시크릿이 없어도 backend는 뜨지만 `/health`가 `db: down`(503)을 돌려줍니다.
   ```bash
-  # 홈서버에서. 주소는 명령 인자가 아니라 표준입력으로만 넘겨서 화면·셸 기록·프로세스 목록에 남지 않게 합니다.
-  # apply는 --server-side로 해야 값이 last-applied-configuration 주석에 한 번 더 복사되지 않습니다.
+  # 홈서버에서(bash). 주소는 명령 인자가 아니라 표준입력으로만 넘겨서 화면·셸 기록·프로세스 목록에 남지 않게 합니다.
+  # apply는 --server-side로 하고 필드 매니저 이름을 따로 줘야 값이 last-applied-configuration 주석에 한 번 더 복사되지 않습니다.
   set -euo pipefail
+  K="sudo k3s kubectl -n backend"
+  # 예전에 일반 kubectl apply로 만든 시크릿이 있으면 그 주석부터 지웁니다(없으면 건너뜀).
+  if $K get secret backend-db >/dev/null 2>&1; then
+    $K annotate secret backend-db kubectl.kubernetes.io/last-applied-configuration-
+  fi
   read -rs -p "DATABASE_URL: " URL; echo
-  printf %s "$URL" | sudo k3s kubectl -n backend create secret generic backend-db \
-      --from-file=DATABASE_URL=/dev/stdin --dry-run=client -o yaml \
-    | sudo k3s kubectl -n backend apply --server-side --force-conflicts -f -
+  printf %s "$URL" | $K create secret generic backend-db --from-file=DATABASE_URL=/dev/stdin --dry-run=client -o yaml \
+    | $K apply --server-side --force-conflicts --field-manager=backend-db-secret -f -
   unset URL
-  sudo k3s kubectl -n backend rollout restart deploy/backend   # 환경 변수는 파드가 시작할 때만 읽습니다
+  $K rollout restart deploy/backend   # 환경 변수는 파드가 시작할 때만 읽습니다
   ```
   같은 명령으로 값을 바꿀 수 있습니다(바꾼 뒤에도 `rollout restart` 필요). 중간에 실패하면 `set -e`로 멈추고 재시작까지 가지 않습니다.
 - 마이그레이션용 `DIRECT_URL`(세션 풀러, IPv4 가능)은 파드가 아니라 마이그레이션을 실행하는 곳에서 씁니다. 첫 모델이 생길 때 실행 방법을 정합니다.
