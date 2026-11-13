@@ -6,6 +6,9 @@ metadata:
     app: backend
 spec:
   replicas: 1
+  # 배포할 때마다 생기는 옛 레플리카셋(되돌리기용 기록)을 최근 3개만 남긴다. 기본값은 10개.
+  # 되돌리기는 backend에 revert를 병합하는 방식을 쓰므로(README) 많이 남길 필요가 없다.
+  revisionHistoryLimit: 3
   selector:
     matchLabels:
       app: backend
