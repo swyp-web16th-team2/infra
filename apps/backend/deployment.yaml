@@ -25,7 +25,7 @@ spec:
       containers:
         - name: backend
           # 태그는 backend 레포 main의 커밋 SHA. 새 버전을 배포하려면 이 줄을 바꾼다.
-          image: ghcr.io/swyp-web16th-team2/backend:5029f828180db33fe9da49a70319fc7f868ef7fa
+          image: ghcr.io/swyp-web16th-team2/backend:01a864bf5995727b34a81157155f896a325fde08
           ports:
             - containerPort: 3000
           env:
